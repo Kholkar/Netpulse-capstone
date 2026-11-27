@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.dependencies import get_device_service, get_repository
 from app.models import AlertResponse, DeviceCreate, DeviceResponse, StatusUpdate
-from app.repositories.device_repository import InMemoryDeviceRepository
+from app.repositories.device_repository import DeviceRepository
 from app.services.device_service import (
     DeviceAlreadyExistsError,
     DeviceNotFoundError,
@@ -9,8 +10,6 @@ from app.services.device_service import (
 )
 
 router = APIRouter()
-repository = InMemoryDeviceRepository()
-service = DeviceService(repository)
 
 
 @router.post(
@@ -19,7 +18,10 @@ service = DeviceService(repository)
     status_code=status.HTTP_201_CREATED,
     responses={409: {"description": "A device with this ID already exists."}},
 )
-def register_device(device: DeviceCreate) -> DeviceResponse:
+def register_device(
+    device: DeviceCreate,
+    service: DeviceService = Depends(get_device_service),
+) -> DeviceResponse:
     try:
         return service.register(device)
     except DeviceAlreadyExistsError as error:
@@ -30,7 +32,9 @@ def register_device(device: DeviceCreate) -> DeviceResponse:
 
 
 @router.get("/devices", response_model=list[DeviceResponse])
-def list_devices() -> list[DeviceResponse]:
+def list_devices(
+    service: DeviceService = Depends(get_device_service),
+) -> list[DeviceResponse]:
     return service.list()
 
 
@@ -39,7 +43,10 @@ def list_devices() -> list[DeviceResponse]:
     response_model=DeviceResponse,
     responses={404: {"description": "Device not found."}},
 )
-def get_device(device_id: str) -> DeviceResponse:
+def get_device(
+    device_id: str,
+    service: DeviceService = Depends(get_device_service),
+) -> DeviceResponse:
     try:
         return service.get(device_id)
     except DeviceNotFoundError as error:
@@ -54,7 +61,11 @@ def get_device(device_id: str) -> DeviceResponse:
     response_model=DeviceResponse,
     responses={404: {"description": "Device not found."}},
 )
-def update_device_status(device_id: str, update: StatusUpdate) -> DeviceResponse:
+def update_device_status(
+    device_id: str,
+    update: StatusUpdate,
+    service: DeviceService = Depends(get_device_service),
+) -> DeviceResponse:
     try:
         return service.update_status(device_id, update.status)
     except DeviceNotFoundError as error:
@@ -65,7 +76,9 @@ def update_device_status(device_id: str, update: StatusUpdate) -> DeviceResponse
 
 
 @router.get("/alerts", response_model=list[AlertResponse])
-def list_alerts() -> list[AlertResponse]:
+def list_alerts(
+    repository: DeviceRepository = Depends(get_repository),
+) -> list[AlertResponse]:
     return repository.list_alerts()
 
 
