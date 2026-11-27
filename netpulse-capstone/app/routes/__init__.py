@@ -1,1 +1,1 @@
-"""HTTP routes for NetPulse."""
+"""NetPulse API route package."""

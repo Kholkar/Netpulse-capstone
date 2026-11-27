@@ -1,8 +1,8 @@
 # netpulse-capstone
 
-NetPulse is a small FastAPI device-monitoring API. It stores devices and alerts
-in memory and records one alert when a device changes from online to offline.
-It does not ping devices or use a database; data resets when the app restarts.
+NetPulse is a small FastAPI device-monitoring API. It records one alert when a
+device changes from online to offline. The default in-memory backend resets when
+the app restarts; an optional MySQL backend persists devices and alerts.
 
 ## Run locally
 
@@ -44,3 +44,27 @@ Open http://127.0.0.1:8000/docs for the Swagger UI.
 ```bash
 python -m pytest -q
 ```
+
+## MySQL Persistence
+
+Create the MySQL database and user, then copy `.env.example` to `.env`. Set
+`PERSISTENCE_BACKEND=mysql` and update the connection values in `.env`. Do not
+commit `.env`; it contains local credentials.
+
+Install the declared dependencies and apply the schema:
+
+```bash
+python -m pip install -r requirements.txt
+alembic upgrade head
+alembic current
+```
+
+To evolve the schema, update the ORM model and generate a migration:
+
+```bash
+alembic revision --autogenerate -m "describe schema change"
+alembic upgrade head
+```
+
+The in-memory backend remains the default for isolated service tests. The
+SQLAlchemy repository uses the same repository contract.
